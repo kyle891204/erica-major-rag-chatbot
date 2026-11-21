@@ -1,6 +1,6 @@
-"""Create only this project's week-2 resources, using a temporary deployer session.
+"""Create only this project's week-2 resources with the authorized console identity.
 
-Run from AWS CloudShell after bootstrap_role.py. State stays outside the repository.
+Run from AWS CloudShell. State stays outside the repository.
 """
 import datetime
 import json
@@ -19,13 +19,8 @@ NOVA = "apac.amazon.nova-micro-v1:0"
 INDEX = "handbook-titan-v2-1024"
 state_path = Path.home() / "erica-week2-state.json"
 state = json.loads(state_path.read_text()) if state_path.exists() else {}
-account = boto3.client("sts").get_caller_identity()["Account"]
-credentials = boto3.client("sts").assume_role(
-    RoleArn=f"arn:aws:iam::{account}:role/{PROJECT}-deployer",
-    RoleSessionName="week2-environment", DurationSeconds=3600,
-)["Credentials"]
-session = boto3.Session(aws_access_key_id=credentials["AccessKeyId"], aws_secret_access_key=credentials["SecretAccessKey"], aws_session_token=credentials["SessionToken"], region_name=REGION)
-del credentials
+session = boto3.Session(region_name=REGION)
+account = session.client("sts").get_caller_identity()["Account"]
 identity = session.client("sts").get_caller_identity()["Arn"]
 bucket = f"{PROJECT}-{account}-{REGION}"
 state.update(region=REGION, bucket=bucket, vector_bucket=bucket, index=INDEX, deploy_identity=identity)
@@ -163,12 +158,12 @@ if not state.get("instance_id"):
     existing = ec2.describe_instances(Filters=[{"Name": "tag:Project", "Values": [PROJECT]}, {"Name": "instance-state-name", "Values": ["pending", "running", "stopped", "stopping"]}])["Reservations"]
     instances = [i for r in existing for i in r["Instances"]]
     assert not instances, "An existing project instance was found; inspect before launching."
-    ami = session.client("ssm").get_parameter(Name="/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64")["Parameter"]["Value"]
+    ami = session.client("ssm").get_parameter(Name="/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64")["Parameter"]["Value"]
     commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
     user_data = "\n".join(["#!/bin/bash", "set -euxo pipefail", "dnf install -y git", f"git clone https://github.com/kyle891204/{PROJECT}.git /opt/{PROJECT}", f"cd /opt/{PROJECT}", f"git checkout {commit}", "bash deploy/install.sh"])
     for attempt in range(8):
         try:
-            instance = ec2.run_instances(ImageId=ami, InstanceType="t3.micro", MinCount=1, MaxCount=1, ClientToken=PROJECT + "-week2-20261122", IamInstanceProfile={"Name": role}, NetworkInterfaces=[{"DeviceIndex": 0, "SubnetId": state["subnet_id"], "Groups": [state["security_group_id"]], "AssociatePublicIpAddress": True}], BlockDeviceMappings=[{"DeviceName": "/dev/xvda", "Ebs": {"VolumeSize": 8, "VolumeType": "gp3", "Encrypted": True, "DeleteOnTermination": True}}], MetadataOptions={"HttpTokens": "required", "HttpEndpoint": "enabled", "HttpPutResponseHopLimit": 1}, CreditSpecification={"CpuCredits": "standard"}, UserData=user_data, TagSpecifications=tag_spec("instance", PROJECT + "-api") + tag_spec("volume", PROJECT + "-root"))["Instances"][0]
+            instance = ec2.run_instances(ImageId=ami, InstanceType="t4g.micro", MinCount=1, MaxCount=1, ClientToken=PROJECT + "-week2-20261122", IamInstanceProfile={"Name": role}, NetworkInterfaces=[{"DeviceIndex": 0, "SubnetId": state["subnet_id"], "Groups": [state["security_group_id"]], "AssociatePublicIpAddress": True}], BlockDeviceMappings=[{"DeviceName": "/dev/xvda", "Ebs": {"VolumeSize": 8, "VolumeType": "gp3", "Encrypted": True, "DeleteOnTermination": True}}], MetadataOptions={"HttpTokens": "required", "HttpEndpoint": "enabled", "HttpPutResponseHopLimit": 1}, CreditSpecification={"CpuCredits": "standard"}, UserData=user_data, TagSpecifications=tag_spec("instance", PROJECT + "-api") + tag_spec("volume", PROJECT + "-root"))["Instances"][0]
             break
         except ClientError as exc:
             if exc.response["Error"]["Code"] == "InvalidParameterValue" and "instance profile" in str(exc).lower():
@@ -177,5 +172,5 @@ if not state.get("instance_id"):
             raise
     else:
         raise RuntimeError("Instance profile did not become ready.")
-    save(instance_id=instance["InstanceId"], ami=ami, instance_type="t3.micro", volume_gib=8, volume_type="gp3", deployed_commit=commit)
+    save(instance_id=instance["InstanceId"], ami=ami, instance_type="t4g.micro", volume_gib=8, volume_type="gp3", deployed_commit=commit)
 save(provisioning_complete=True, checked_at=datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).isoformat())
