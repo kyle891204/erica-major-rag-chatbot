@@ -23,7 +23,7 @@ session = boto3.Session(region_name=REGION)
 account = session.client("sts").get_caller_identity()["Account"]
 identity = session.client("sts").get_caller_identity()["Arn"]
 bucket = f"{PROJECT}-{account}-{REGION}"
-state.update(region=REGION, bucket=bucket, vector_bucket=bucket, index=INDEX, deploy_identity=identity)
+state.update(region=REGION, bucket=bucket, vector_bucket=bucket, index=INDEX, setup_identity=identity)
 
 def save(**values):
     state.update(values)
@@ -37,21 +37,21 @@ def tags(name):
 def tag_spec(kind, name):
     return [{"ResourceType": kind, "Tags": tags(name)}]
 
-save(deploy_identity=identity)
+save(setup_identity=identity)
 bedrock = session.client("bedrock")
 runtime = session.client("bedrock-runtime")
 profile = bedrock.get_inference_profile(inferenceProfileIdentifier=NOVA)
 assert profile["status"] == "ACTIVE"
 model_arns = [m["modelArn"] for m in profile["models"]]
 save(nova_profile=NOVA, nova_profile_arn=profile["inferenceProfileArn"], nova_destinations=model_arns)
-if not state.get("deployer_titan_success"):
+if not state.get("console_titan_success"):
     result = runtime.invoke_model(modelId=TITAN, contentType="application/json", accept="application/json", body=json.dumps({"inputText": "ERICA environment verification only.", "dimensions": 1024, "normalize": True}))
     embedding = json.loads(result["body"].read())["embedding"]
     assert len(embedding) == 1024 and all(isinstance(v, (int, float)) for v in embedding)
-    save(deployer_titan_success=True, titan_dimensions=len(embedding), titan_model=TITAN, titan_normalize=True)
-if not state.get("deployer_nova_success"):
+    save(console_titan_success=True, titan_dimensions=len(embedding), titan_model=TITAN, titan_normalize=True)
+if not state.get("console_nova_success"):
     result = runtime.converse(modelId=NOVA, messages=[{"role": "user", "content": [{"text": "Reply with OK only. Environment test."}]}], inferenceConfig={"maxTokens": 8, "temperature": 0})
-    save(deployer_nova_success=True, deployer_nova_response=result["output"]["message"]["content"], nova_usage=result.get("usage"))
+    save(console_nova_success=True, console_nova_response=result["output"]["message"]["content"], nova_usage=result.get("usage"))
 
 s3 = session.client("s3")
 if not state.get("s3_created"):

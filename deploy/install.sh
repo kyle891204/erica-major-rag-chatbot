@@ -3,6 +3,9 @@ set -euo pipefail
 dnf install -y python3.12 python3.12-pip git amazon-cloudwatch-agent
 id erica >/dev/null 2>&1 || useradd --system --home-dir /opt/erica-major-rag-chatbot --shell /sbin/nologin erica
 install -d -m 0750 -o erica -g erica /var/log/erica-api
+touch /var/log/erica-api/api.log
+chown erica:erica /var/log/erica-api/api.log
+chmod 0640 /var/log/erica-api/api.log
 cd /opt/erica-major-rag-chatbot
 python3.12 -m venv .venv
 .venv/bin/python -m pip install --no-cache-dir -r requirements.lock.txt
