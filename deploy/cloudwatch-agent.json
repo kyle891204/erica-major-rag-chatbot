@@ -1,0 +1,14 @@
+{
+  "agent": {"region": "ap-northeast-2"},
+  "logs": {
+    "logs_collected": {
+      "files": {
+        "collect_list": [{
+          "file_path": "/var/log/erica-api/api.log",
+          "log_group_name": "/erica-major-rag-chatbot/api",
+          "log_stream_name": "{instance_id}/api"
+        }]
+      }
+    }
+  }
+}
