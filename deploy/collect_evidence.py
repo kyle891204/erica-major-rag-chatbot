@@ -23,7 +23,7 @@ evidence["runtime_role"] = iam.get_role(RoleName=state["ec2_role"])["Role"]
 evidence["runtime_policy"] = iam.get_role_policy(RoleName=state["ec2_role"], PolicyName="ProjectRuntime")["PolicyDocument"]
 evidence["managed_policies"] = iam.list_attached_role_policies(RoleName=state["ec2_role"])["AttachedPolicies"]
 evidence["cloudwatch_groups"] = logs.describe_log_groups(logGroupNamePrefix=state["log_group"])["logGroups"]
-evidence["cloudwatch_events"] = logs.filter_log_events(logGroupName=state["log_group"], filterPattern='"http_request"', limit=20).get("events", [])
+evidence["cloudwatch_events"] = [e for page in logs.get_paginator("filter_log_events").paginate(logGroupName=state["log_group"], PaginationConfig={"MaxItems": 50}) for e in page.get("events", [])]
 evidence["ssm_checks"] = ssm.list_command_invocations(InstanceId=state["instance_id"], Details=True, MaxResults=20)["CommandInvocations"]
 for filename in ["erica-arm-price.json", "erica-ebs-price.json"]:
     p = Path("/tmp") / filename

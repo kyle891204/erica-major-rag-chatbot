@@ -2,7 +2,7 @@
 한양대학교 ERICA 2026 Cloud Architecture(HY24307)
 
 한양대학교 ERICA 학부생이 전공제도를 질문하면 학사 안내 편람을 근거로 답변하고 출처를 제공하는 RAG기반 챗봇
-> 현 진행 단계: 서비스 기획 및 AWS Architecture 설계
+> 현 진행 단계: 2주차 AWS 환경 구성 및 기본 API 배포
 
 ## 1. 프로젝트 개요
 - **대상 사용자:** 전공·다전공 제도에 대한 정보를 알고 싶은 한양대학교 ERICA 학부생
@@ -68,7 +68,7 @@
 <!-- 데이터 준비 구성도를 업로드한 뒤 이미지 경로를 추가합니다. -->
 
 ### 서비스 구성도
-반영예쩡
+반영 예정
 <!-- 질문·답변 구성도를 업로드한 뒤 이미지 경로를 추가합니다. -->
 
 ## 8. 진행 현황
@@ -81,7 +81,44 @@
 - [ ] 검색·답변 API 구현
 - [ ] 웹 화면 구현 및 연동
 - [ ] 답변 정확성·출처·근거 부족 처리 검증
-- [ ] AWS 배포 및 동작 확인
+- [x] 2주차 기본 API의 EC2 배포 및 실행 확인
+- [ ] RAG 전체 서비스의 AWS 배포 및 동작 확인
 
-## 9. 실행 방법
-구현 완료 후 환경 설정, 설치 및 실행 방법을 작성 예정
+## 9. 기본 API 실행 방법
+Python 3.12를 사용합니다.
+
+```sh
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.lock.txt
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --no-access-log
+curl http://127.0.0.1:8000/health
+```
+
+```json
+{"status":"ok","service":"erica-major-rag-chatbot"}
+```
+
+`/health`는 서버 실행 확인용입니다. RAG 전체 연결 성공이나 학사 질문에 대한 답변 기능을 의미하지 않습니다.
+
+## 10. 2주차 환경 구성
+- 기본 리전: 서울 `ap-northeast-2`
+- EC2: Amazon Linux 2023 ARM64, `t4g.micro` 1대, 암호화 gp3 8GiB
+- 최종 상태: 비용 절감을 위해 검증 후 EC2 중지
+- API 확인 형식: `http://EC2_PUBLIC_IP:8000/health` (현재 중지 상태에서는 접속 불가, 재시작 시 새 공인 IP 확인 필요)
+- 관리 접속: AWS Systems Manager, SSH 포트와 키 페어 미사용
+- 보안 그룹: 외부 TCP 8000만 허용
+- S3: 프로젝트 문서 버킷, 퍼블릭 액세스 차단, SSE-S3 암호화
+- S3 Vectors: `handbook-titan-v2-1024`, 1024차원, float32, cosine, 원문 text를 비필터 메타데이터로 보존
+- 임베딩: `amazon.titan-embed-text-v2:0`, dimensions=1024, normalize=true
+- 생성: 서울 Bedrock Runtime에서 `apac.amazon.nova-micro-v1:0` 교차 리전 추론 프로파일 호출
+- 실행 권한: EC2 인스턴스 역할에 프로젝트 저장소·지정 모델·로그 권한과 AmazonSSMManagedInstanceCore 연결
+- 프로세스: systemd `erica-api`, 부팅 시 자동 시작
+- 로그: CloudWatch Agent → `/erica-major-rag-chatbot/api`, 7일 보존
+
+EC2 역할에서 S3 쓰기·읽기, Titan 1024차원 생성, 별도 시험 벡터 쓰기·검색, Nova Micro 생성 호출을 확인했습니다. 시험용 벡터는 `test-only/week2/` 키와 별도 dataset 값을 사용합니다. 실제 학사 편람 자료는 아직 적재하지 않았습니다.
+
+운영·재시작·로그 확인과 비용 관리 방법은 [운영 문서](deploy/OPERATIONS.md)를 참고하세요. 원문 질문과 인증정보는 API 로그에 기록하지 않습니다.
+
+## 11. 남은 구현
+편람 대상 6개 항목 수집, 표와 조건을 보존하는 분할, 실제 문서 벡터 적재, 검색 근거에 따른 답변 API, 검색 결과 출처 표시, 웹 화면과 정확성 검증은 후속 구현 범위입니다. 기존 데이터 준비 구성도와 질문·답변 구성도는 확보 후 위 7절에 반영합니다.
