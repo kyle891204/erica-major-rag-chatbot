@@ -1,0 +1,25 @@
+[Unit]
+Description=ERICA Major RAG Chatbot health API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=erica
+Group=erica
+WorkingDirectory=/opt/erica-major-rag-chatbot
+Environment=AWS_DEFAULT_REGION=ap-northeast-2
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/erica-major-rag-chatbot/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/log/erica-api/api.log
+StandardError=append:/var/log/erica-api/api.log
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/erica-api
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target
