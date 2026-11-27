@@ -2,7 +2,7 @@
 한양대학교 ERICA 2026 Cloud Architecture(HY24307)
 
 한양대학교 ERICA 학부생이 전공제도를 질문하면 학사 안내 편람을 근거로 답변하고 출처를 제공하는 RAG기반 챗봇
-> 현 진행 단계: 3주차 RAG MVP 및 로컬 동작 검증
+> 현 진행 단계: 3주차 RAG MVP 구현과 AWS EC2 공개 접속 검증 완료 (2026-11-28)
 
 ## 1. 프로젝트 개요
 - **대상 사용자:** 전공·다전공 제도에 대한 정보를 알고 싶은 한양대학교 ERICA 학부생
@@ -111,7 +111,7 @@ RAG_MODE=local RAG_LOCAL_GENERATOR=/tmp/erica-local-generator \
 ## 10. 2주차 환경 구성
 - 기본 리전: 서울 `ap-northeast-2`
 - EC2: Amazon Linux 2023 ARM64, `t4g.micro` 1대, 암호화 gp3 8GiB
-- 최종 상태: 비용 절감을 위해 검증 후 EC2 중지
+- 2주차 검증 직후 상태: 비용 절감을 위해 EC2 중지
 - API 확인 형식: `http://EC2_PUBLIC_IP:8000/health` (현재 중지 상태에서는 접속 불가, 재시작 시 새 공인 IP 확인 필요)
 - 관리 접속: AWS Systems Manager, SSH 포트와 키 페어 미사용
 - 보안 그룹: 외부 TCP 8000만 허용

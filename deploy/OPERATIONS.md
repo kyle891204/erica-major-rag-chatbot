@@ -70,7 +70,7 @@ curl -i http://127.0.0.1:8000/health
 - 리전은 서울 `ap-northeast-2`다.
 - EC2는 Amazon Linux 2023 arm64, t4g.micro, 암호화된 gp3 8GiB를 사용한다. CPU 크레딧은 Standard로 설정해 초과 크레딧 요금을 피한다.
 - 관리 접속은 Systems Manager를 사용한다. SSH 포트와 키 페어는 사용하지 않는다.
-- 보안 그룹은 확인 API용 TCP 8000만 외부에 허용한다. 현재 공개되는 기능은 `/health`뿐이다. 실제 사용자 질문을 다루기 전에는 HTTPS와 접근 제어를 검토한다.
+- 보안 그룹은 확인 API용 TCP 8000만 외부에 허용한다. 2주차 검증 당시 공개 기능은 `/health`였다. 실제 사용자 질문을 다루기 전에는 HTTPS와 접근 제어를 검토한다.
 - 문서 S3 버킷은 퍼블릭 액세스 차단 4개 항목과 SSE-S3 암호화를 사용한다.
 - 벡터 인덱스는 Titan Text Embeddings V2, 1024차원, 정규화, float32, cosine을 기준으로 구성한다.
 - Nova Micro는 서울 Bedrock Runtime 엔드포인트에서 `apac.amazon.nova-micro-v1:0` 추론 프로파일로 호출한다. 고정된 단일 처리 리전을 주장하지 않는다.
