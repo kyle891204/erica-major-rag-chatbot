@@ -93,7 +93,10 @@ def answer(body: Question):
             raise HTTPException(status_code=429, detail="질문 요청이 많아요. 잠시 후 다시 시도해 주세요.")
         return ask(body.question)
     except (BotoCoreError, ClientError, RagUnavailable, OSError, subprocess.TimeoutExpired) as error:
-        logger.warning(json.dumps({"event": "rag_unavailable", "kind": type(error).__name__}))
+        event = {"event": "rag_unavailable", "kind": type(error).__name__}
+        if isinstance(error, ClientError):
+            event.update(operation=error.operation_name, code=error.response["Error"]["Code"])
+        logger.warning(json.dumps(event))
         raise HTTPException(status_code=503, detail="답변 서비스에 연결할 수 없어요. 잠시 후 다시 시도해 주세요.") from None
     finally:
         rag_slots.release()
