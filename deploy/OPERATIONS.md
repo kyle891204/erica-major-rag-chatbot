@@ -1,4 +1,53 @@
-# 2주차 환경 실행 및 운영
+# AWS 환경 실행 및 운영
+
+## 3주차 MVP 배포
+
+기존 서울 리전 EC2와 프로젝트 버킷 및 벡터 인덱스를 재사용한다. 아래 명령은 2주차 자원 상태 파일이 있는 AWS CloudShell을 기준으로 한다. 해당 프로젝트 자원만 사용한다.
+
+```sh
+export AWS_REGION=ap-northeast-2
+state=~/erica-week2-state.json
+instance=$(jq -er .instance_id "$state")
+bucket=$(jq -er .bucket "$state")
+aws ec2 start-instances --instance-ids "$instance" --query 'StartingInstances[0].CurrentState.Name' --output text
+aws ec2 wait instance-running --instance-ids "$instance"
+aws ssm describe-instance-information --filters "Key=InstanceIds,Values=$instance" --query 'InstanceInformationList[0].PingStatus' --output text
+```
+
+SSM 상태가 `Online`이면 CloudShell에서 아래 명령을 실행한다. GitHub에 게시된 3주차 브랜치의 커밋을 설치하며 기존 권한과 포트를 사용한다.
+
+```sh
+repo=/opt/erica-major-rag-chatbot
+branch=refs/heads/week3/rag-mvp
+params=$(jq -n --arg repo "$repo" --arg branch "$branch" --arg bucket "$bucket" '{
+  executionTimeout: ["1200"],
+  commands: [
+    "set -e",
+    ("git -C " + $repo + " fetch origin " + $branch),
+    ("commit=$(git -C " + $repo + " rev-parse FETCH_HEAD)"),
+    "release=$(mktemp)",
+    "trap \"rm -f $release\" EXIT",
+    ("git -C " + $repo + " show \"$commit:deploy/update_mvp.sh\" > \"$release\""),
+    ("bash \"$release\" \"$commit\" " + ($bucket | @sh))
+  ]}')
+command_id=$(aws ssm send-command --instance-ids "$instance" --document-name AWS-RunShellScript \
+  --parameters "$params" --query Command.CommandId --output text)
+aws ssm get-command-invocation --command-id "$command_id" --instance-id "$instance" \
+  --query '{Status:Status,Output:StandardOutputContent,Error:StandardErrorContent}'
+```
+
+`Success`가 되면 아래에서 공인 IPv4를 확인한다. `curl` 및 브라우저의 주소에서 메인 화면과 대표 질문의 답변·출처를 확인한다. 기존 인스턴스의 공인 IP는 재시작 후 변경될 수 있다.
+
+```sh
+ip=$(aws ec2 describe-instances --instance-ids "$instance" \
+  --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
+echo "http://$ip:8000/"
+curl --fail "http://$ip:8000/health"
+```
+
+MVP 적재 경로는 S3의 `handbook/<version>/source.json`과 `chunks.json`이다. 벡터 적재 후 같은 경로에 `ready.json`을 기록한다. 적재는 결정적인 버전과 키를 사용해 같은 편람으로 재시도할 수 있다. 연동 확인에서 실패하면 배포 스크립트가 이전 EC2 서비스 설정과 커밋을 복구한다.
+
+## 2주차 환경 기록
 
 이 단계는 EC2에서 기본 API가 유지되고 AWS 자원에 역할로 접근할 수 있는지 확인한다. 학사 편람 검색과 답변을 수행하는 RAG 전체 기능은 후속 구현 범위다. 실제 생성 여부와 검증 결과는 환경 구성 보고서를 따른다.
 

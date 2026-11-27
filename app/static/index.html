@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7f3">
+  <title>ERICA 전공 제도 챗봇</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/chat.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="brand" href="/" aria-label="ERICA 전공 길잡이 홈">
+        <span class="brand-mark" aria-hidden="true">E</span>
+        <span><strong>ERICA</strong><small>전공 길잡이</small></span>
+      </a>
+      <a class="handbook" href="https://yoorhi816.github.io/erica-academic-handbook/" target="_blank" rel="noopener noreferrer">학사 편람 <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+  <main class="shell">
+    <section class="intro">
+      <h1>ERICA 전공 제도 챗봇</h1>
+      <p>부전공, 다중전공 등 전공 제도를 질문하고 학사 편람에서 답변의 근거를 확인하세요.</p>
+    </section>
+    <div class="workspace">
+      <section class="panel question-panel" aria-labelledby="question-heading">
+        <h2 id="question-heading">어떤 제도가 궁금하세요?</h2>
+        <form id="question-form">
+          <label class="visually-hidden" for="question">전공 제도 질문</label>
+          <textarea id="question" maxlength="500" rows="3" placeholder="예: 부전공은 몇 개까지 신청할 수 있나요?" required></textarea>
+          <div class="form-actions">
+            <span>학번이나 성적은 입력하지 마세요.</span>
+            <button id="submit" type="submit">질문하기 <span aria-hidden="true">↑</span></button>
+          </div>
+        </form>
+        <div class="suggestions">
+          <h3>예시 질문</h3>
+          <button type="button">마이크로전공은 몇 학점을 이수해야 하나요?</button>
+          <button type="button">부전공은 몇 개까지 신청할 수 있나요?</button>
+          <button type="button">복수전공은 언제 신청할 수 있나요?</button>
+        </div>
+        <p id="mode" class="mode" hidden></p>
+      </section>
+
+      <section class="panel answer-panel" aria-labelledby="answer-heading">
+        <h2 id="answer-heading">편람 기반 답변</h2>
+        <div id="result" aria-live="polite">
+          <div class="empty">
+            <div class="empty-mark" aria-hidden="true">✦</div>
+            <p>질문을 입력하면 답변과 출처가 여기에 표시됩니다.</p>
+          </div>
+        </div>
+        <div id="sources" class="sources" hidden>
+          <h3>답변 출처</h3>
+          <ol id="source-list"></ol>
+        </div>
+      </section>
+    </div>
+    <footer>학기별 신청 기간과 최종 이수요건은 포털 공지나 소속 학과에서 확인하세요.</footer>
+  </main>
+</body>
+</html>

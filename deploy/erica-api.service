@@ -1,5 +1,5 @@
 [Unit]
-Description=ERICA Major RAG Chatbot health API
+Description=ERICA Major RAG Chatbot
 After=network-online.target
 Wants=network-online.target
 
@@ -9,6 +9,7 @@ Group=erica
 WorkingDirectory=/opt/erica-major-rag-chatbot
 Environment=AWS_DEFAULT_REGION=ap-northeast-2
 Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=-/etc/erica-api/mvp.env
 ExecStart=/opt/erica-major-rag-chatbot/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log
 Restart=on-failure
 RestartSec=5
